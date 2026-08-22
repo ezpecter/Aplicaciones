@@ -1,0 +1,1425 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#141318">
+<title>Lanzador — Espacios</title>
+<style>
+/* ------------------------------------------------------------------ tokens
+   Heredados tal cual de sidepanel.css para que el lanzador y la extensión
+   se vean como la misma herramienta. Lo único que cambia son las medidas:
+   aquí se toca con el dedo, no con el ratón. */
+:root {
+  color-scheme: dark light;
+
+  --ink:      #141318;
+  --surface:  #1c1b22;
+  --raised:   #24232c;
+  --line:     #2c2b35;
+  --text:     #e9e7ee;
+  --muted:    #8b8797;
+  --faint:    #5d5a68;
+
+  --accent:   #6aa9ff;
+  --accent-soft: rgba(106, 169, 255, .14);
+
+  --r-sm: 6px;
+  --r-md: 9px;
+  --r-lg: 13px;
+
+  --grey:   #9aa0a6;
+  --blue:   #6aa9ff;
+  --red:    #f2836b;
+  --yellow: #e8b84b;
+  --green:  #62c08a;
+  --pink:   #f07eb0;
+  --purple: #b18bf5;
+  --cyan:   #55c2d0;
+  --orange: #f0954d;
+
+  --riel: 58px;
+  --toque: 46px;      /* alto mínimo de cualquier cosa que se toque */
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --ink:     #f4f3f7;
+    --surface: #ffffff;
+    --raised:  #ecebf1;
+    --line:    #e0dee8;
+    --text:    #23212b;
+    --muted:   #6f6b7c;
+    --faint:   #9793a4;
+  }
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+[hidden] { display: none !important; }
+
+html, body {
+  height: 100%; margin: 0;
+  background: var(--ink);
+  color: var(--text);
+  font: 400 15px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+button { background: none; border: 0; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+
+/* ------------------------------------------------------------------ shell */
+.shell { display: flex; height: 100%; }
+
+/* -------------------------------------------------------------- el riel */
+.rail {
+  width: var(--riel); flex: 0 0 var(--riel);
+  background: var(--ink);
+  border-right: 1px solid var(--line);
+  display: flex; flex-direction: column; align-items: center;
+  padding: 10px 0 calc(10px + env(safe-area-inset-bottom)); gap: 8px;
+  overflow-y: auto; scrollbar-width: none;
+}
+.rail::-webkit-scrollbar { display: none; }
+.rail-list { display: flex; flex-direction: column; gap: 8px; width: 100%; align-items: center; }
+
+/* La firma de Espacios: la barrita que crece a la izquierda del chip activo,
+   y el cuadrado que se redondea al activarse. */
+.chip {
+  position: relative;
+  width: 42px; height: 42px;
+  border-radius: 12px;
+  background: var(--raised);
+  display: grid; place-items: center;
+  font-size: 20px; line-height: 1;
+  transition: border-radius .16s ease, background .16s ease;
+  flex: 0 0 auto;
+}
+.chip::before {
+  content: ""; position: absolute; left: -9px; top: 50%;
+  width: 3px; height: 0; border-radius: 0 3px 3px 0;
+  background: var(--chip); transform: translateY(-50%);
+  transition: height .18s cubic-bezier(.2,.8,.2,1);
+}
+.chip.activo::before { height: 24px; }
+.chip.activo { background: color-mix(in srgb, var(--chip) 26%, var(--raised)); border-radius: 15px; }
+.chip:active { transform: scale(.94); }
+.chip .num {
+  position: absolute; bottom: -3px; right: -4px;
+  min-width: 17px; height: 17px; padding: 0 4px;
+  border-radius: 9px; background: var(--ink); border: 1px solid var(--line);
+  font-size: 10px; font-weight: 600; line-height: 15px; color: var(--muted);
+  display: grid; place-items: center;
+}
+.rail-add {
+  width: 42px; height: 36px; border-radius: 12px;
+  color: var(--faint); font-size: 20px; line-height: 1;
+  border: 1px dashed var(--line); flex: 0 0 auto;
+}
+
+/* ------------------------------------------------------------- la columna */
+.main {
+  flex: 1; min-width: 0; min-height: 0;
+  display: flex; flex-direction: column;
+  background: var(--surface);
+}
+.head { flex: 0 0 auto; padding: 10px 10px 8px; border-bottom: 1px solid var(--line); }
+.head-row { display: flex; align-items: center; gap: 4px; }
+.space-btn {
+  display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;
+  padding: 6px 8px; border-radius: var(--r-md); min-height: var(--toque);
+}
+.space-btn:active { background: var(--raised); }
+.space-icon { font-size: 19px; flex: 0 0 auto; }
+.space-name {
+  font-weight: 600; font-size: 16px; letter-spacing: -.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.icon-btn {
+  width: var(--toque); height: var(--toque); border-radius: var(--r-md);
+  color: var(--muted); font-size: 17px; display: grid; place-items: center; flex: 0 0 auto;
+}
+.icon-btn:active { background: var(--raised); color: var(--text); }
+
+.search-row { margin-top: 6px; }
+.search-row input {
+  width: 100%; height: 40px; padding: 0 12px;
+  background: var(--raised); border: 1px solid transparent; border-radius: var(--r-md);
+  color: var(--text);
+}
+.search-row input::placeholder { color: var(--faint); }
+.search-row input:focus { border-color: var(--line); outline: none; }
+
+/* -------------------------------------------------------------- ancladas */
+.pins { flex: 0 0 auto; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+.pins-head {
+  display: flex; align-items: center; gap: 6px;
+  margin-bottom: 6px;
+}
+.label {
+  font-size: 10px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--faint); flex: 1;
+}
+.pin-row { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.pin-row::-webkit-scrollbar { display: none; }
+.pin {
+  flex: 0 0 auto; width: 44px; height: 44px; border-radius: var(--r-md);
+  background: var(--raised); display: grid; place-items: center;
+  text-decoration: none; color: var(--text);
+}
+.pin:active { background: color-mix(in srgb, var(--accent) 20%, var(--raised)); }
+
+/* ------------------------------------------------------------ el contenido */
+.scroll {
+  flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  padding: 6px 10px calc(14px + env(safe-area-inset-bottom));
+}
+
+.sec { margin-top: 10px; }
+.sec.hija { margin-left: 14px; padding-left: 10px; border-left: 1px solid var(--line); }
+.sec-head {
+  display: flex; align-items: center; gap: 8px;
+  min-height: 36px; padding: 0 4px;
+}
+.sec-punto { width: 7px; height: 7px; border-radius: 50%; background: var(--sec, var(--faint)); flex: 0 0 auto; }
+.sec-name {
+  font-size: 12px; font-weight: 600; letter-spacing: .02em; color: var(--muted);
+  flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sec-n { font-size: 11px; color: var(--faint); }
+.sec-act { width: 32px; height: 32px; border-radius: var(--r-sm); color: var(--faint); display: grid; place-items: center; }
+.sec-act:active { background: var(--raised); color: var(--text); }
+
+/* La liga. Es un <a> de verdad, no un div con onclick: Android sólo entrega
+   la dirección a la app instalada si la navegación sale de un enlace real. */
+.liga {
+  display: flex; align-items: center; gap: 10px;
+  min-height: var(--toque); padding: 5px 6px;
+  border-radius: var(--r-md);
+  text-decoration: none; color: var(--text);
+}
+.liga:active { background: var(--raised); }
+.marca {
+  flex: 0 0 auto; width: 30px; height: 30px; border-radius: 8px;
+  display: grid; place-items: center;
+  font-size: 12px; font-weight: 700; letter-spacing: -.03em;
+  background: color-mix(in srgb, var(--marca, var(--faint)) 22%, var(--raised));
+  color: var(--marca, var(--muted));
+  overflow: hidden;
+}
+.marca img { width: 100%; height: 100%; object-fit: cover; }
+.liga-txt { flex: 1; min-width: 0; }
+.liga-tit {
+  font-size: 14px; line-height: 1.3;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.liga-sub {
+  font-size: 11px; color: var(--faint); margin-top: 1px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.liga-sub .app { color: var(--muted); }
+.liga-mas {
+  flex: 0 0 auto; width: 34px; height: 34px; border-radius: var(--r-sm);
+  color: var(--faint); display: grid; place-items: center; font-size: 16px;
+}
+.liga-mas:active { background: var(--ink); }
+
+.vacio {
+  margin: 26px 8px; padding: 20px 16px;
+  border: 1px dashed var(--line); border-radius: var(--r-lg);
+  color: var(--muted); text-align: center;
+}
+.vacio h2 { margin: 0 0 6px; font-size: 15px; font-weight: 600; color: var(--text); }
+.vacio p { margin: 0 0 14px; font-size: 13px; line-height: 1.5; }
+
+/* ------------------------------------------------------------------- pie */
+.foot {
+  flex: 0 0 auto; display: flex; gap: 6px; padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line); background: var(--surface);
+}
+.foot-btn {
+  flex: 1; min-height: var(--toque); border-radius: var(--r-md);
+  background: var(--raised); color: var(--text); font-size: 13px; font-weight: 500;
+}
+.foot-btn:active { background: color-mix(in srgb, var(--accent) 18%, var(--raised)); }
+.foot-btn.primaria { background: color-mix(in srgb, var(--accent) 24%, var(--raised)); }
+
+/* ------------------------------------------------------------------ hojas
+   En escritorio Espacios usa una tarjeta centrada. En táctil manda la hoja
+   que sube desde abajo: el pulgar llega. */
+.hoja {
+  position: fixed; inset: 0; z-index: 40;
+  background: rgba(0,0,0,.5);
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.hoja-card {
+  width: 100%; max-width: 520px; max-height: 88vh; overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--line); border-bottom: 0;
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  padding: 6px 14px calc(16px + env(safe-area-inset-bottom));
+  animation: subir .2s cubic-bezier(.2,.8,.2,1);
+}
+@keyframes subir { from { transform: translateY(14px); opacity: .6; } }
+.asa { width: 34px; height: 4px; border-radius: 2px; background: var(--line); margin: 6px auto 12px; }
+.hoja h3 { margin: 0 0 12px; font-size: 15px; font-weight: 600; }
+.campo { margin-bottom: 12px; }
+.campo > span {
+  display: block; font-size: 11px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--faint); margin-bottom: 5px;
+}
+.campo input, .campo select, .campo textarea {
+  width: 100%; min-height: var(--toque); padding: 10px 12px;
+  background: var(--raised); border: 1px solid var(--line); border-radius: var(--r-md);
+  color: var(--text);
+}
+.campo textarea { min-height: 76px; resize: vertical; font-size: 13px; }
+.fila { display: flex; gap: 8px; }
+.fila > * { flex: 1; min-width: 0; }
+.acciones { display: flex; gap: 8px; margin-top: 16px; }
+.acciones button {
+  flex: 1; min-height: var(--toque); border-radius: var(--r-md);
+  background: var(--raised); font-size: 14px; font-weight: 500;
+}
+.acciones .ok { background: color-mix(in srgb, var(--accent) 30%, var(--raised)); }
+.acciones .mal { color: var(--red); }
+
+.lista-op { display: flex; flex-direction: column; }
+.op {
+  display: flex; align-items: center; gap: 10px;
+  min-height: var(--toque); padding: 6px 4px; text-align: left; width: 100%;
+  border-radius: var(--r-md); font-size: 14px;
+}
+.op:active { background: var(--raised); }
+.op .ic { width: 24px; text-align: center; color: var(--muted); flex: 0 0 auto; }
+.op.mal { color: var(--red); }
+.op.mal .ic { color: var(--red); }
+
+.rejilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 6px; }
+.rejilla button {
+  height: 44px; border-radius: var(--r-md); background: var(--raised);
+  font-size: 20px; display: grid; place-items: center;
+}
+.rejilla button.sel { outline: 2px solid var(--accent); }
+.colores { display: flex; gap: 8px; flex-wrap: wrap; }
+.colores button { width: 34px; height: 34px; border-radius: 50%; background: var(--c); }
+.colores button.sel { outline: 2px solid var(--text); outline-offset: 2px; }
+
+/* --------------------------------------------------------- importación */
+.imp-esp {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 4px; border-bottom: 1px solid var(--line);
+}
+.imp-esp:last-child { border-bottom: 0; }
+.imp-check { width: 24px; height: 24px; flex: 0 0 auto; accent-color: var(--accent); }
+.imp-txt { flex: 1; min-width: 0; }
+.imp-nom { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.imp-det { font-size: 11px; color: var(--faint); }
+.imp-esp select { flex: 0 0 auto; max-width: 42%; min-height: 38px; padding: 0 8px;
+  background: var(--raised); border: 1px solid var(--line); border-radius: var(--r-sm); font-size: 12px; }
+
+.aviso {
+  margin: 10px 0; padding: 10px 12px; border-radius: var(--r-md);
+  background: var(--accent-soft); color: var(--text); font-size: 12px; line-height: 1.5;
+}
+
+.brindis {
+  position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom));
+  transform: translateX(-50%); z-index: 60;
+  background: var(--raised); border: 1px solid var(--line);
+  padding: 10px 16px; border-radius: 999px; font-size: 13px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.35);
+  animation: subir .18s ease;
+}
+
+/* En pantalla ancha (la tablet en horizontal, sin dividir) no estiramos las
+   ligas a lo bestia: el lanzador está pensado para una columna estrecha. */
+@media (min-width: 620px) {
+  .scroll > .cuerpo { max-width: 560px; }
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <nav class="rail" id="riel" aria-label="Espacios">
+    <div class="rail-list" id="rielLista"></div>
+    <button class="rail-add" id="nuevoEspacio" aria-label="Nuevo espacio">+</button>
+  </nav>
+
+  <main class="main">
+    <header class="head">
+      <div class="head-row">
+        <button class="space-btn" id="btnEspacio">
+          <span class="space-icon" id="espIcono">🗂️</span>
+          <span class="space-name" id="espNombre">Espacios</span>
+        </button>
+        <button class="icon-btn" id="btnDatos" aria-label="Datos y ajustes">⚙</button>
+        <button class="icon-btn" id="btnEspMenu" aria-label="Opciones del espacio">⋯</button>
+      </div>
+      <div class="search-row">
+        <input id="buscar" type="search" placeholder="Buscar en todos los espacios" autocomplete="off" spellcheck="false">
+      </div>
+    </header>
+
+    <section class="pins" id="ancladas" hidden>
+      <div class="pins-head">
+        <span class="label">Ancladas</span>
+        <button class="sec-act" id="addAnclada" aria-label="Anclar una liga">+</button>
+      </div>
+      <div class="pin-row" id="filaAncladas"></div>
+    </section>
+
+    <div class="scroll" id="scroll">
+      <div class="cuerpo" id="cuerpo"></div>
+    </div>
+
+    <footer class="foot">
+      <button class="foot-btn primaria" id="addLiga">Añadir liga</button>
+      <button class="foot-btn" id="addSeccion">Nueva sección</button>
+    </footer>
+  </main>
+</div>
+
+<div class="hoja" id="hoja" hidden><div class="hoja-card" id="hojaCard"></div></div>
+
+<script>
+"use strict";
+
+/* ==========================================================================
+   Lanzador — prototipo
+   --------------------------------------------------------------------------
+   Hermano de bolsillo de la extensión Espacios. No gestiona pestañas vivas:
+   guarda ligas y las abre. En Android, tocar una liga de Drive abre la app de
+   Drive en ese documento; si la app no está, cae al navegador.
+
+   Tres cosas que conviene saber antes de tocar el código:
+
+   1. Las ligas son <a href target="_blank">. Tiene que ser un enlace real y
+      la navegación tiene que salir del gesto: si abres con location.href o
+      window.open, Android no siempre se lo entrega a la app. Y _blank importa
+      porque si NO hay app que atienda la dirección, se abre en pestaña nueva
+      y el lanzador sigue en su mitad de la pantalla dividida.
+
+   2. Aquí no se sabe qué hay abierto. Ninguna app deja mirar dentro de otra.
+      Lo único que hace el lanzador es lanzar.
+
+   3. El estado se guarda donde se pueda (ver Almacen) pero la copia buena es
+      el archivo. Exporta antes de nada raro.
+   ========================================================================== */
+
+const COLORES = ['grey','blue','red','yellow','green','pink','purple','cyan','orange'];
+const EMOJIS = ['🗂️','💼','🏠','📚','🎓','🧪','💻','🎨','🎬','🎧','📝','📊','🛒','✈️','🍳','🏋️','💰','🧾','📬','🔧','🌱','🐦','⚽','🎮','🧠','🩺','⚖️','🗺️','📷','🔬','🕹️','🧵','☕','🌙','⭐','🔥','🧩','📌'];
+
+/* Direcciones que en Android abren app en vez de navegador. Es sólo una
+   etiqueta informativa: quien decide de verdad es el sistema. */
+const APPS = [
+  [/(^|\.)docs\.google\.com$/,        'Documentos'],
+  [/(^|\.)drive\.google\.com$/,       'Drive'],
+  [/(^|\.)sheets\.google\.com$/,      'Hojas'],
+  [/(^|\.)mail\.google\.com$/,        'Gmail'],
+  [/(^|\.)calendar\.google\.com$/,    'Calendario'],
+  [/(^|\.)keep\.google\.com$/,        'Keep'],
+  [/(^|\.)notion\.so$/,               'Notion'],
+  [/(^|\.)youtube\.com$|^youtu\.be$/, 'YouTube'],
+  [/(^|\.)open\.spotify\.com$/,       'Spotify'],
+  [/(^|\.)wa\.me$|(^|\.)chat\.whatsapp\.com$/, 'WhatsApp'],
+  [/(^|\.)t\.me$/,                    'Telegram'],
+  [/(^|\.)github\.com$/,              'GitHub'],
+  [/(^|\.)figma\.com$/,               'Figma'],
+  [/(^|\.)trello\.com$/,              'Trello'],
+  [/(^|\.)slack\.com$/,               'Slack'],
+  [/(^|\.)linear\.app$/,              'Linear'],
+  [/(^|\.)obsidian\.md$/,             'Obsidian'],
+  [/(^|\.)dropbox\.com$/,             'Dropbox'],
+  [/(^|\.)todoist\.com$/,             'Todoist'],
+  [/(^|\.)x\.com$|(^|\.)twitter\.com$/, 'X'],
+  [/(^|\.)reddit\.com$/,              'Reddit'],
+  [/(^|\.)instagram\.com$/,           'Instagram'],
+  [/(^|\.)maps\.google\.com$/,        'Maps']
+];
+
+/* -------------------------------------------------------------- utilería */
+const $  = (s) => document.querySelector(s);
+const el = (t, c, txt) => { const n = document.createElement(t); if (c) n.className = c; if (txt != null) n.textContent = txt; return n; };
+const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+
+function anfitrion(url) {
+  try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; }
+}
+function appDe(url) {
+  const h = anfitrion(url);
+  if (!h) return null;
+  for (const [re, nombre] of APPS) if (re.test(h)) return nombre;
+  return null;
+}
+/** Lo que se enseña debajo del nombre: el dominio si es web, y si no el
+    esquema, que es lo que de verdad decide a dónde va (tg, whatsapp…). */
+function etiqueta(url) {
+  const s = String(url || '').trim();
+  if (/^https?:/i.test(s)) return anfitrion(s);
+  const m = s.match(/^([a-z][a-z0-9+.-]*):/i);
+  return m ? m[1].toLowerCase() : s;
+}
+/** Frase honesta sobre qué va a pasar al tocar. */
+function destinoDe(url) {
+  if (!esLanzable(url)) return '';
+  if (!/^https?:/i.test(url)) return 'Va directa a la app, sin pasar por el navegador';
+  const app = appDe(url);
+  return app ? 'Debería abrir ' + app : 'Se abre en el navegador salvo que alguna app reclame ese dominio';
+}
+function monograma(url, titulo) {
+  const base = etiqueta(url) || titulo || '?';
+  return base.split('.')[0].slice(0, 2).toUpperCase();
+}
+/** Color estable a partir de la dirección: la misma web siempre igual. */
+function colorDe(url) {
+  const h = etiqueta(url) || String(url || '');
+  let n = 0;
+  for (let i = 0; i < h.length; i++) n = (n * 31 + h.charCodeAt(i)) >>> 0;
+  return COLORES[n % COLORES.length];
+}
+function normalizarUrl(txt) {
+  const s = String(txt || '').trim();
+  if (!s) return '';
+  if (/^[a-z][a-z0-9+.-]*:/i.test(s)) return s;      // ya trae esquema
+  return 'https://' + s;
+}
+/* Cualquier esquema vale: además de http(s), las apps traen los suyos
+   (whatsapp://, tg://, spotify://, obsidian://). Van directas a la app sin
+   pasar por el navegador; si la app no está, el sistema da error en vez de
+   caer a la web. Lo único que se descarta es lo que no es una dirección. */
+function esLanzable(url) {
+  const s = String(url || '').trim();
+  if (/^(javascript|data|blob|file):/i.test(s)) return false;
+  return /^[a-z][a-z0-9+.-]*:/i.test(s);
+}
+
+/* -------------------------------------------------------------- almacén
+   Tres pisos, de mejor a peor:
+     1. window.storage  — cuando esto corre dentro de Claude.
+     2. localStorage    — cuando lo guardas como archivo y lo abres en Brave.
+     3. memoria         — último recurso; se pierde al cerrar, y se avisa.
+   Se elige uno al arrancar y no se mezclan. */
+const Almacen = (() => {
+  const CLAVE = 'lanzador:estado';
+  let modo = 'memoria';
+  let mem = null;
+
+  if (typeof window !== 'undefined' && window.storage && typeof window.storage.get === 'function') {
+    modo = 'artefacto';
+  } else {
+    try {
+      const p = '__lanzador_probe__';
+      window.localStorage.setItem(p, '1');
+      window.localStorage.removeItem(p);
+      modo = 'local';
+    } catch { modo = 'memoria'; }
+  }
+
+  return {
+    modo,
+    async leer() {
+      try {
+        if (modo === 'artefacto') {
+          const r = await window.storage.get(CLAVE, false);
+          return r && r.value ? JSON.parse(r.value) : null;
+        }
+        if (modo === 'local') {
+          const s = window.localStorage.getItem(CLAVE);
+          return s ? JSON.parse(s) : null;
+        }
+      } catch { return null; }
+      return mem;
+    },
+    async escribir(estado) {
+      const s = JSON.stringify(estado);
+      try {
+        if (modo === 'artefacto') { await window.storage.set(CLAVE, s, false); return true; }
+        if (modo === 'local') { window.localStorage.setItem(CLAVE, s); return true; }
+      } catch { /* se cae a memoria abajo */ }
+      mem = JSON.parse(s);
+      return modo === 'memoria';
+    }
+  };
+})();
+
+/* --------------------------------------------------------------- estado */
+let E = null;              // el estado del lanzador
+let activo = null;         // id del espacio en pantalla
+let filtro = '';
+
+function estadoVacio() {
+  return {
+    app: 'lanzador', v: 1,
+    espacios: [{ id: uid(), nombre: 'General', icono: '🗂️', color: 'blue', secciones: [], ligas: [] }],
+    ancladas: []
+  };
+}
+
+function espacio() { return E.espacios.find((s) => s.id === activo) || E.espacios[0] || null; }
+
+async function guardar() {
+  const soloMemoria = await Almacen.escribir(E);
+  if (soloMemoria && !guardar.avisado) {
+    guardar.avisado = true;
+    brindis('Sin sitio donde guardar: exporta antes de cerrar');
+  }
+}
+
+/** Saneamiento: nunca dos ligas con el mismo id, ni ligas huérfanas de
+    sección. Es el mismo problema de "una pestaña, un registro" de Espacios,
+    en pequeño. */
+function sanear() {
+  if (!E || !Array.isArray(E.espacios)) E = estadoVacio();
+  if (!Array.isArray(E.ancladas)) E.ancladas = [];
+  const vistos = new Set();
+  for (const sp of E.espacios) {
+    sp.id ||= uid();
+    sp.nombre = String(sp.nombre || 'Espacio');
+    sp.icono ||= '🗂️';
+    sp.color = COLORES.includes(sp.color) ? sp.color : 'blue';
+    sp.secciones = Array.isArray(sp.secciones) ? sp.secciones : [];
+    sp.ligas = Array.isArray(sp.ligas) ? sp.ligas : [];
+    const ids = new Set(sp.secciones.map((x) => x.id));
+    for (const sec of sp.secciones) {
+      sec.id ||= uid();
+      sec.nombre = String(sec.nombre || 'Sección');
+      if (sec.parentId && !ids.has(sec.parentId)) sec.parentId = null;
+      if (sec.parentId === sec.id) sec.parentId = null;
+    }
+    sp.ligas = sp.ligas.filter((l) => l && esLanzable(l.url));
+    for (const l of sp.ligas) {
+      if (!l.id || vistos.has(l.id)) l.id = uid();
+      vistos.add(l.id);
+      l.titulo = String(l.titulo || etiqueta(l.url) || l.url);
+      if (l.seccionId && !ids.has(l.seccionId)) l.seccionId = null;
+    }
+  }
+  E.ancladas = E.ancladas.filter((a) => a && esLanzable(a.url));
+  for (const a of E.ancladas) { a.id ||= uid(); a.titulo = String(a.titulo || etiqueta(a.url)); }
+  if (!E.espacios.length) E.espacios = estadoVacio().espacios;
+  if (!E.espacios.some((s) => s.id === activo)) activo = E.espacios[0].id;
+}
+
+/* --------------------------------------------------------------- pintar */
+function pintar() {
+  sanear();
+  pintarRiel();
+  pintarCabecera();
+  pintarAncladas();
+  pintarCuerpo();
+}
+
+function pintarRiel() {
+  const cont = $('#rielLista');
+  cont.textContent = '';
+  for (const sp of E.espacios) {
+    const b = el('button', 'chip' + (sp.id === activo ? ' activo' : ''));
+    b.style.setProperty('--chip', `var(--${sp.color})`);
+    b.title = sp.nombre;
+    b.setAttribute('aria-label', sp.nombre);
+    b.append(document.createTextNode(sp.icono));
+    if (sp.ligas.length) b.append(el('span', 'num', String(sp.ligas.length)));
+    b.onclick = () => { activo = sp.id; filtro = ''; $('#buscar').value = ''; pintar(); $('#scroll').scrollTop = 0; };
+    cont.append(b);
+  }
+}
+
+function pintarCabecera() {
+  const sp = espacio();
+  $('#espIcono').textContent = sp.icono;
+  $('#espNombre').textContent = sp.nombre;
+  document.documentElement.style.setProperty('--accent', `var(--${sp.color})`);
+}
+
+function pintarAncladas() {
+  const caja = $('#ancladas');
+  const fila = $('#filaAncladas');
+  fila.textContent = '';
+  caja.hidden = false;
+  for (const a of E.ancladas) {
+    const link = el('a', 'pin');
+    link.href = a.url; link.target = '_blank'; link.rel = 'noopener';
+    link.title = a.titulo;
+    const m = el('div', 'marca', monograma(a.url, a.titulo));
+    m.style.setProperty('--marca', `var(--${colorDe(a.url)})`);
+    link.append(m);
+    link.oncontextmenu = (ev) => { ev.preventDefault(); menuAnclada(a); };
+    fila.append(link);
+  }
+  if (!E.ancladas.length) {
+    const p = el('div', 'imp-det', 'Las ligas que uses en todos los espacios van aquí.');
+    fila.append(p);
+  }
+}
+
+function nodoLiga(l) {
+  const link = el('a', 'liga');
+  link.href = l.url; link.target = '_blank'; link.rel = 'noopener';
+
+  const m = el('div', 'marca');
+  m.style.setProperty('--marca', `var(--${colorDe(l.url)})`);
+  if (E.ajustes && E.ajustes.favicons) {
+    const img = el('img');
+    img.src = 'https://www.google.com/s2/favicons?sz=64&domain=' + encodeURIComponent(anfitrion(l.url));
+    img.alt = ''; img.loading = 'lazy';
+    img.onerror = () => { img.remove(); m.textContent = monograma(l.url, l.titulo); };
+    m.append(img);
+  } else {
+    m.textContent = monograma(l.url, l.titulo);
+  }
+
+  const txt = el('div', 'liga-txt');
+  txt.append(el('div', 'liga-tit', l.titulo));
+  const sub = el('div', 'liga-sub');
+  const app = appDe(l.url);
+  if (app) { const s = el('span', 'app', 'Abre en ' + app); sub.append(s, document.createTextNode(' · ' + anfitrion(l.url))); }
+  else if (!/^https?:/i.test(l.url)) { sub.append(el('span', 'app', 'Directa a la app'), document.createTextNode(' · ' + etiqueta(l.url))); }
+  else sub.textContent = etiqueta(l.url) || l.url;
+  txt.append(sub);
+
+  const mas = el('button', 'liga-mas', '⋯');
+  mas.setAttribute('aria-label', 'Opciones de ' + l.titulo);
+  mas.onclick = (ev) => { ev.preventDefault(); ev.stopPropagation(); menuLiga(l); };
+
+  link.append(m, txt, mas);
+  link.oncontextmenu = (ev) => { ev.preventDefault(); menuLiga(l); };
+  return link;
+}
+
+function pintarCuerpo() {
+  const cuerpo = $('#cuerpo');
+  cuerpo.textContent = '';
+
+  if (filtro) return pintarBusqueda(cuerpo);
+
+  const sp = espacio();
+  if (!sp.ligas.length && !sp.secciones.length) return pintarVacio(cuerpo);
+
+  // Sueltas primero, luego secciones raíz con sus hijas.
+  const sueltas = sp.ligas.filter((l) => !l.seccionId);
+  for (const l of sueltas) cuerpo.append(nodoLiga(l));
+
+  const raices = sp.secciones.filter((s) => !s.parentId);
+  for (const sec of raices) cuerpo.append(nodoSeccion(sp, sec, false));
+}
+
+function nodoSeccion(sp, sec, hija) {
+  const caja = el('div', 'sec' + (hija ? ' hija' : ''));
+  const cab = el('div', 'sec-head');
+  const punto = el('span', 'sec-punto');
+  punto.style.setProperty('--sec', `var(--${COLORES.includes(sec.color) ? sec.color : 'grey'})`);
+  const dentro = sp.ligas.filter((l) => l.seccionId === sec.id);
+  const mas = el('button', 'sec-act', '⋯');
+  mas.setAttribute('aria-label', 'Opciones de ' + sec.nombre);
+  mas.onclick = () => menuSeccion(sp, sec);
+  cab.append(punto, el('span', 'sec-name', sec.nombre), el('span', 'sec-n', String(dentro.length)), mas);
+  caja.append(cab);
+  for (const l of dentro) caja.append(nodoLiga(l));
+  for (const h of sp.secciones.filter((s) => s.parentId === sec.id)) caja.append(nodoSeccion(sp, h, true));
+  return caja;
+}
+
+function pintarBusqueda(cuerpo) {
+  const q = filtro.toLowerCase();
+  let n = 0;
+  for (const sp of E.espacios) {
+    const hits = sp.ligas.filter((l) =>
+      l.titulo.toLowerCase().includes(q) || String(l.url).toLowerCase().includes(q));
+    if (!hits.length) continue;
+    n += hits.length;
+    const cab = el('div', 'sec-head');
+    cab.append(document.createTextNode(sp.icono + ' '), el('span', 'sec-name', sp.nombre), el('span', 'sec-n', String(hits.length)));
+    cuerpo.append(cab);
+    for (const l of hits) cuerpo.append(nodoLiga(l));
+  }
+  if (!n) {
+    const v = el('div', 'vacio');
+    v.append(el('h2', null, 'Ninguna liga coincide'));
+    v.append(el('p', null, 'Prueba con parte de la dirección, no sólo del nombre.'));
+    cuerpo.append(v);
+  }
+}
+
+function pintarVacio(cuerpo) {
+  const v = el('div', 'vacio');
+  v.append(el('h2', null, 'Este espacio está vacío'));
+  v.append(el('p', null, 'Trae tus espacios desde el archivo que exporta la extensión, o añade una liga a mano.'));
+  const b1 = el('button', 'foot-btn primaria', 'Importar de Espacios');
+  b1.onclick = hojaImportar;
+  const b2 = el('button', 'foot-btn', 'Añadir liga');
+  b2.onclick = () => hojaLiga(null);
+  const fila = el('div', 'acciones');
+  fila.append(b1, b2);
+  v.append(fila);
+  cuerpo.append(v);
+}
+
+/* ----------------------------------------------------------------- hojas */
+function abrirHoja(construir) {
+  const card = $('#hojaCard');
+  card.textContent = '';
+  card.append(el('div', 'asa'));
+  construir(card);
+  $('#hoja').hidden = false;
+}
+function cerrarHoja() { $('#hoja').hidden = true; $('#hojaCard').textContent = ''; }
+
+$('#hoja').onclick = (ev) => { if (ev.target.id === 'hoja') cerrarHoja(); };
+document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && !$('#hoja').hidden) cerrarHoja(); });
+
+function campo(etiqueta, nodo) {
+  const c = el('label', 'campo');
+  c.append(el('span', null, etiqueta), nodo);
+  return c;
+}
+function entrada(valor, ph, tipo) {
+  const i = el('input');
+  i.type = tipo || 'text'; i.value = valor || ''; if (ph) i.placeholder = ph;
+  i.autocomplete = 'off'; i.spellcheck = false;
+  return i;
+}
+function botones(card, textoOk, alDar, extra) {
+  const fila = el('div', 'acciones');
+  const cancelar = el('button', null, 'Cancelar');
+  cancelar.onclick = cerrarHoja;
+  const ok = el('button', 'ok', textoOk);
+  ok.onclick = alDar;
+  fila.append(cancelar, ok);
+  card.append(fila);
+  if (extra) card.append(extra);
+}
+function brindis(txt) {
+  const n = el('div', 'brindis', txt);
+  document.body.append(n);
+  setTimeout(() => n.remove(), 2600);
+}
+
+/** Lista de secciones de un espacio, con las hijas indentadas por nombre. */
+function opcionesSeccion(sp, sel) {
+  const s = el('select');
+  const ninguna = el('option', null, 'Sin sección');
+  ninguna.value = '';
+  s.append(ninguna);
+  const poner = (sec, prefijo) => {
+    const o = el('option', null, prefijo + sec.nombre);
+    o.value = sec.id;
+    if (sec.id === sel) o.selected = true;
+    s.append(o);
+    for (const h of sp.secciones.filter((x) => x.parentId === sec.id)) poner(h, prefijo + '› ');
+  };
+  for (const sec of sp.secciones.filter((x) => !x.parentId)) poner(sec, '');
+  return s;
+}
+
+/* ------------------------------------------------------------ hoja: liga */
+function hojaLiga(liga, sp) {
+  const esp = sp || espacio();
+  abrirHoja((card) => {
+    card.append(el('h3', null, liga ? 'Editar liga' : 'Añadir liga'));
+
+    const iUrl = entrada(liga ? liga.url : '', 'https://docs.google.com/…', 'url');
+    const iTit = entrada(liga ? liga.titulo : '', 'Cómo la quieres ver');
+    const sSec = opcionesSeccion(esp, liga ? liga.seccionId : null);
+
+    const sEsp = el('select');
+    for (const s of E.espacios) {
+      const o = el('option', null, s.icono + '  ' + s.nombre);
+      o.value = s.id;
+      if (s.id === esp.id) o.selected = true;
+      sEsp.append(o);
+    }
+    // Cambiar de espacio en el formulario reconstruye la lista de secciones.
+    sEsp.onchange = () => {
+      const destino = E.espacios.find((s) => s.id === sEsp.value);
+      cajaSec.querySelector('select').replaceWith(opcionesSeccion(destino, null));
+    };
+
+    card.append(campo('Dirección', iUrl));
+    const pista = el('div', 'imp-det');
+    pista.style.margin = '-6px 2px 12px';
+    const repintarPista = () => { pista.textContent = destinoDe(normalizarUrl(iUrl.value)); };
+    repintarPista();
+    iUrl.oninput = repintarPista;
+    card.append(pista);
+    card.append(campo('Nombre', iTit));
+    const fila = el('div', 'fila');
+    const cajaEsp = campo('Espacio', sEsp);
+    const cajaSec = campo('Sección', sSec);
+    fila.append(cajaEsp, cajaSec);
+    card.append(fila);
+
+    // Si pegas la dirección y no pones nombre, se rellena solo.
+    iUrl.onblur = () => { if (!iTit.value.trim()) iTit.value = etiqueta(normalizarUrl(iUrl.value)) || ''; };
+
+    const pegar = el('button', 'foot-btn', 'Pegar del portapapeles');
+    pegar.onclick = async () => {
+      try {
+        const t = await navigator.clipboard.readText();
+        if (t) { iUrl.value = t.trim(); iUrl.onblur(); }
+      } catch { brindis('El navegador no dejó leer el portapapeles'); }
+    };
+    card.append(pegar);
+
+    botones(card, liga ? 'Guardar' : 'Añadir', async () => {
+      const url = normalizarUrl(iUrl.value);
+      if (!esLanzable(url)) return brindis('Esa dirección no se puede abrir');
+      const destinoId = sEsp.value;
+      const seccionId = (cajaSec.querySelector('select').value) || null;
+      const titulo = iTit.value.trim() || etiqueta(url) || url;
+
+      if (liga) {
+        // Mover entre espacios = quitar de uno y poner en otro.
+        const origen = E.espacios.find((s) => s.ligas.some((x) => x.id === liga.id));
+        if (origen && origen.id !== destinoId) {
+          origen.ligas = origen.ligas.filter((x) => x.id !== liga.id);
+          E.espacios.find((s) => s.id === destinoId).ligas.push(liga);
+        }
+        Object.assign(liga, { url, titulo, seccionId });
+      } else {
+        E.espacios.find((s) => s.id === destinoId).ligas.push({ id: uid(), url, titulo, seccionId });
+      }
+      await guardar(); cerrarHoja(); pintar();
+    });
+  });
+}
+
+function menuLiga(l) {
+  abrirHoja((card) => {
+    card.append(el('h3', null, l.titulo));
+    const lista = el('div', 'lista-op');
+
+    const abrir = el('a', 'op');
+    abrir.href = l.url; abrir.target = '_blank'; abrir.rel = 'noopener';
+    abrir.append(el('span', 'ic', '↗'), document.createTextNode('Abrir'));
+    abrir.onclick = () => cerrarHoja();
+
+    const editar = el('button', 'op');
+    editar.append(el('span', 'ic', '✎'), document.createTextNode('Editar'));
+    editar.onclick = () => hojaLiga(l);
+
+    const anclar = el('button', 'op');
+    anclar.append(el('span', 'ic', '⚲'), document.createTextNode('Anclar a todos los espacios'));
+    anclar.onclick = async () => {
+      if (!E.ancladas.some((a) => a.url === l.url)) E.ancladas.push({ id: uid(), url: l.url, titulo: l.titulo });
+      await guardar(); cerrarHoja(); pintar(); brindis('Anclada');
+    };
+
+    const copiar = el('button', 'op');
+    copiar.append(el('span', 'ic', '⧉'), document.createTextNode('Copiar dirección'));
+    copiar.onclick = async () => {
+      try { await navigator.clipboard.writeText(l.url); brindis('Copiada'); }
+      catch { brindis('No se pudo copiar'); }
+      cerrarHoja();
+    };
+
+    const subir = el('button', 'op');
+    subir.append(el('span', 'ic', '↑'), document.createTextNode('Subir'));
+    subir.onclick = () => mover(l, -1);
+    const bajar = el('button', 'op');
+    bajar.append(el('span', 'ic', '↓'), document.createTextNode('Bajar'));
+    bajar.onclick = () => mover(l, 1);
+
+    const borrar = el('button', 'op mal');
+    borrar.append(el('span', 'ic', '␡'), document.createTextNode('Quitar del espacio'));
+    borrar.onclick = async () => {
+      const sp = E.espacios.find((s) => s.ligas.some((x) => x.id === l.id));
+      if (sp) sp.ligas = sp.ligas.filter((x) => x.id !== l.id);
+      await guardar(); cerrarHoja(); pintar();
+    };
+
+    lista.append(abrir, editar, anclar, copiar, subir, bajar, borrar);
+    card.append(lista);
+  });
+}
+
+/** Sube o baja la liga dentro de su propio grupo (sueltas o su sección). */
+async function mover(l, paso) {
+  const sp = E.espacios.find((s) => s.ligas.some((x) => x.id === l.id));
+  if (!sp) return;
+  const grupo = sp.ligas.filter((x) => (x.seccionId || null) === (l.seccionId || null));
+  const i = grupo.indexOf(l);
+  const j = i + paso;
+  if (j < 0 || j >= grupo.length) { cerrarHoja(); return; }
+  const otra = grupo[j];
+  const a = sp.ligas.indexOf(l), b = sp.ligas.indexOf(otra);
+  sp.ligas[a] = otra; sp.ligas[b] = l;
+  await guardar(); cerrarHoja(); pintar();
+}
+
+function menuAnclada(a) {
+  abrirHoja((card) => {
+    card.append(el('h3', null, a.titulo));
+    const lista = el('div', 'lista-op');
+    const quitar = el('button', 'op mal');
+    quitar.append(el('span', 'ic', '␡'), document.createTextNode('Quitar de ancladas'));
+    quitar.onclick = async () => {
+      E.ancladas = E.ancladas.filter((x) => x.id !== a.id);
+      await guardar(); cerrarHoja(); pintar();
+    };
+    lista.append(quitar);
+    card.append(lista);
+  });
+}
+
+/* -------------------------------------------------------- hoja: espacio */
+function hojaEspacio(sp) {
+  abrirHoja((card) => {
+    card.append(el('h3', null, sp ? 'Editar espacio' : 'Nuevo espacio'));
+    const iNom = entrada(sp ? sp.nombre : '', 'Nombre del espacio');
+    card.append(campo('Nombre', iNom));
+
+    let icono = sp ? sp.icono : '🗂️';
+    const rej = el('div', 'rejilla');
+    for (const e of EMOJIS) {
+      const b = el('button', e === icono ? 'sel' : null, e);
+      b.onclick = () => { icono = e; rej.querySelectorAll('button').forEach((x) => x.classList.remove('sel')); b.classList.add('sel'); };
+      rej.append(b);
+    }
+    card.append(campo('Icono', rej));
+
+    let color = sp ? sp.color : 'blue';
+    const cols = el('div', 'colores');
+    for (const c of COLORES) {
+      const b = el('button', c === color ? 'sel' : null);
+      b.style.setProperty('--c', `var(--${c})`);
+      b.setAttribute('aria-label', c);
+      b.onclick = () => { color = c; cols.querySelectorAll('button').forEach((x) => x.classList.remove('sel')); b.classList.add('sel'); };
+      cols.append(b);
+    }
+    card.append(campo('Color', cols));
+
+    botones(card, sp ? 'Guardar' : 'Crear', async () => {
+      const nombre = iNom.value.trim() || 'Espacio';
+      if (sp) Object.assign(sp, { nombre, icono, color });
+      else {
+        const nuevo = { id: uid(), nombre, icono, color, secciones: [], ligas: [] };
+        E.espacios.push(nuevo); activo = nuevo.id;
+      }
+      await guardar(); cerrarHoja(); pintar();
+    });
+  });
+}
+
+function menuEspacio() {
+  const sp = espacio();
+  abrirHoja((card) => {
+    card.append(el('h3', null, sp.icono + '  ' + sp.nombre));
+    const lista = el('div', 'lista-op');
+
+    const editar = el('button', 'op');
+    editar.append(el('span', 'ic', '✎'), document.createTextNode('Editar espacio'));
+    editar.onclick = () => hojaEspacio(sp);
+
+    const izq = el('button', 'op');
+    izq.append(el('span', 'ic', '↑'), document.createTextNode('Subir en el riel'));
+    izq.onclick = () => moverEspacio(sp, -1);
+    const der = el('button', 'op');
+    der.append(el('span', 'ic', '↓'), document.createTextNode('Bajar en el riel'));
+    der.onclick = () => moverEspacio(sp, 1);
+
+    const borrar = el('button', 'op mal');
+    borrar.append(el('span', 'ic', '␡'), document.createTextNode(`Borrar espacio y sus ${sp.ligas.length} ligas`));
+    borrar.onclick = async () => {
+      if (E.espacios.length === 1) { brindis('Tiene que quedar al menos un espacio'); return; }
+      if (!confirm(`¿Borrar "${sp.nombre}" y sus ${sp.ligas.length} ligas?`)) return;
+      E.espacios = E.espacios.filter((s) => s.id !== sp.id);
+      activo = E.espacios[0].id;
+      await guardar(); cerrarHoja(); pintar();
+    };
+
+    lista.append(editar, izq, der, borrar);
+    card.append(lista);
+  });
+}
+
+async function moverEspacio(sp, paso) {
+  const i = E.espacios.indexOf(sp), j = i + paso;
+  if (j < 0 || j >= E.espacios.length) { cerrarHoja(); return; }
+  E.espacios.splice(i, 1); E.espacios.splice(j, 0, sp);
+  await guardar(); cerrarHoja(); pintar();
+}
+
+/* -------------------------------------------------------- hoja: sección */
+function hojaSeccion(sp, sec) {
+  abrirHoja((card) => {
+    card.append(el('h3', null, sec ? 'Editar sección' : 'Nueva sección'));
+    const iNom = entrada(sec ? sec.nombre : '', 'Nombre de la sección');
+    card.append(campo('Nombre', iNom));
+
+    // Un solo nivel de subsecciones, igual que en la extensión.
+    const sPadre = el('select');
+    const o0 = el('option', null, 'Sección principal'); o0.value = '';
+    sPadre.append(o0);
+    for (const s of sp.secciones.filter((x) => !x.parentId && (!sec || x.id !== sec.id))) {
+      const o = el('option', null, 'Dentro de ' + s.nombre);
+      o.value = s.id;
+      if (sec && sec.parentId === s.id) o.selected = true;
+      sPadre.append(o);
+    }
+    card.append(campo('Nivel', sPadre));
+
+    let color = sec && COLORES.includes(sec.color) ? sec.color : 'grey';
+    const cols = el('div', 'colores');
+    for (const c of COLORES) {
+      const b = el('button', c === color ? 'sel' : null);
+      b.style.setProperty('--c', `var(--${c})`);
+      b.setAttribute('aria-label', c);
+      b.onclick = () => { color = c; cols.querySelectorAll('button').forEach((x) => x.classList.remove('sel')); b.classList.add('sel'); };
+      cols.append(b);
+    }
+    card.append(campo('Color', cols));
+
+    botones(card, sec ? 'Guardar' : 'Crear', async () => {
+      const nombre = iNom.value.trim() || 'Sección';
+      const parentId = sPadre.value || null;
+      if (sec) Object.assign(sec, { nombre, color, parentId });
+      else sp.secciones.push({ id: uid(), nombre, color, parentId });
+      await guardar(); cerrarHoja(); pintar();
+    });
+  });
+}
+
+function menuSeccion(sp, sec) {
+  abrirHoja((card) => {
+    card.append(el('h3', null, sec.nombre));
+    const lista = el('div', 'lista-op');
+
+    const editar = el('button', 'op');
+    editar.append(el('span', 'ic', '✎'), document.createTextNode('Editar sección'));
+    editar.onclick = () => hojaSeccion(sp, sec);
+
+    const anadir = el('button', 'op');
+    anadir.append(el('span', 'ic', '+'), document.createTextNode('Añadir liga aquí'));
+    anadir.onclick = () => { cerrarHoja(); hojaLigaEn(sp, sec.id); };
+
+    const borrar = el('button', 'op mal');
+    borrar.append(el('span', 'ic', '␡'), document.createTextNode('Borrar sección (las ligas se quedan)'));
+    borrar.onclick = async () => {
+      const hijas = sp.secciones.filter((s) => s.parentId === sec.id).map((s) => s.id);
+      const fuera = new Set([sec.id, ...hijas]);
+      for (const l of sp.ligas) if (fuera.has(l.seccionId)) l.seccionId = null;
+      sp.secciones = sp.secciones.filter((s) => !fuera.has(s.id));
+      await guardar(); cerrarHoja(); pintar();
+    };
+
+    lista.append(editar, anadir, borrar);
+    card.append(lista);
+  });
+}
+
+function hojaLigaEn(sp, seccionId) {
+  hojaLiga(null, sp);
+  // Preselecciona la sección recién elegida.
+  const sel = $('#hojaCard').querySelectorAll('select')[1];
+  if (sel) sel.value = seccionId || '';
+}
+
+/* ------------------------------------------------- importar de Espacios
+   El archivo que suelta la extensión trae mucho más de lo que aquí sirve:
+   pestañas abiertas de paso, direcciones internas del navegador, estado de
+   ventanas. Se queda con lo que tiene sentido lanzar desde una tablet. */
+function ligasDelEspacio(sp, todas) {
+  const tabs = Array.isArray(sp.tabs) ? sp.tabs : [];
+  const vale = (t) => t && /^https?:/i.test(String(t.url || '')) && (todas || t.keep || t.home);
+
+  // Respeta el orden del panel: primero las sueltas fijadas en `order`,
+  // luego lo demás. Los `t:` de `order` son ligas sueltas.
+  const porId = new Map(tabs.map((t) => [t.id, t]));
+  const ordenadas = [];
+  const puestas = new Set();
+  for (const k of (Array.isArray(sp.order) ? sp.order : [])) {
+    const s = String(k);
+    if (!s.startsWith('t:')) continue;
+    const t = porId.get(s.slice(2));
+    if (t && vale(t) && !puestas.has(t.id)) { ordenadas.push(t); puestas.add(t.id); }
+  }
+  for (const t of tabs) if (vale(t) && !puestas.has(t.id)) { ordenadas.push(t); puestas.add(t.id); }
+
+  // Una dirección, una liga: al reabrir la misma web en varios sitios la
+  // extensión guarda registros distintos, aquí sobran.
+  const vistas = new Set();
+  const salida = [];
+  for (const t of ordenadas) {
+    const clave = String(t.url).replace(/#.*$/, '');
+    if (vistas.has(clave)) continue;
+    vistas.add(clave);
+    salida.push({
+      id: uid(),
+      url: t.url,
+      titulo: String(t.title || anfitrion(t.url) || t.url).trim(),
+      seccionId: t.sectionId || null
+    });
+  }
+  return salida;
+}
+
+function leerArchivo(datos, todas) {
+  const fuente = Array.isArray(datos && datos.spaces) ? datos.spaces : [];
+  return fuente.map((sp) => ({
+    idOrigen: sp.id,
+    nombre: String(sp.name || 'Espacio'),
+    icono: sp.icon || '🗂️',
+    color: COLORES.includes(sp.color) ? sp.color : 'blue',
+    secciones: (Array.isArray(sp.sections) ? sp.sections : []).map((s) => ({
+      id: s.id, nombre: String(s.name || 'Sección'),
+      color: COLORES.includes(s.color) ? s.color : 'grey',
+      parentId: s.parentId || null
+    })),
+    ligas: ligasDelEspacio(sp, todas),
+    total: (sp.tabs || []).length
+  }));
+}
+
+function hojaImportar() {
+  abrirHoja((card) => {
+    card.append(el('h3', null, 'Importar de Espacios'));
+
+    const av = el('div', 'aviso');
+    av.textContent = 'Coge el archivo que exporta la extensión desde el ordenador. Nada se borra: lo que traigas se suma a lo que ya tienes.';
+    card.append(av);
+
+    const file = el('input');
+    file.type = 'file'; file.accept = '.json,application/json';
+    card.append(campo('Archivo', file));
+
+    const lTodas = el('label', 'campo');
+    const cTodas = el('input'); cTodas.type = 'checkbox'; cTodas.className = 'imp-check';
+    const fila = el('div', 'imp-esp');
+    fila.append(cTodas, el('div', 'imp-txt', 'Traer también las pestañas sin estrella'));
+    lTodas.append(fila);
+
+    const zona = el('div');
+    card.append(lTodas, zona);
+
+    let datos = null;
+    const repintar = () => {
+      zona.textContent = '';
+      if (!datos) return;
+      const lista = leerArchivo(datos, cTodas.checked);
+      if (!lista.length) { zona.append(el('div', 'aviso', 'El archivo no trae espacios.')); return; }
+
+      const destinos = new Map();
+      for (const it of lista) {
+        const f = el('div', 'imp-esp');
+        const chk = el('input'); chk.type = 'checkbox'; chk.className = 'imp-check'; chk.checked = it.ligas.length > 0;
+        const txt = el('div', 'imp-txt');
+        txt.append(el('div', 'imp-nom', it.icono + '  ' + it.nombre));
+        txt.append(el('div', 'imp-det', `${it.ligas.length} ligas de ${it.total} pestañas`));
+
+        // Por defecto cae sobre el espacio que ya se llama igual, como en el
+        // importador de escritorio; si no hay, entra como nuevo.
+        const sel = el('select');
+        const oNuevo = el('option', null, 'Como nuevo'); oNuevo.value = '';
+        sel.append(oNuevo);
+        for (const s of E.espacios) {
+          const o = el('option', null, 'En ' + s.nombre);
+          o.value = s.id;
+          if (s.nombre.trim().toLowerCase() === it.nombre.trim().toLowerCase()) o.selected = true;
+          sel.append(o);
+        }
+        f.append(chk, txt, sel);
+        zona.append(f);
+        destinos.set(it, { chk, sel });
+      }
+      zona.dataset.listo = '1';
+      zona._plan = { lista, destinos };
+    };
+
+    cTodas.onchange = repintar;
+    file.onchange = () => {
+      const f = file.files && file.files[0];
+      if (!f) return;
+      const lector = new FileReader();
+      lector.onload = () => {
+        try {
+          datos = JSON.parse(String(lector.result));
+          if (!datos || !Array.isArray(datos.spaces)) throw new Error('sin spaces');
+          repintar();
+        } catch {
+          datos = null;
+          zona.textContent = '';
+          zona.append(el('div', 'aviso', 'Ese archivo no es una exportación de Espacios.'));
+        }
+      };
+      lector.readAsText(f);
+    };
+
+    botones(card, 'Traer lo marcado', async () => {
+      const plan = zona._plan;
+      if (!plan) return brindis('Elige primero un archivo');
+      let n = 0;
+      for (const it of plan.lista) {
+        const { chk, sel } = plan.destinos.get(it);
+        if (!chk.checked) continue;
+
+        let destino = sel.value ? E.espacios.find((s) => s.id === sel.value) : null;
+        if (!destino) {
+          destino = { id: uid(), nombre: it.nombre, icono: it.icono, color: it.color, secciones: [], ligas: [] };
+          E.espacios.push(destino);
+        }
+
+        // Las secciones llegan con los ids del archivo; se les dan ids nuevos
+        // y se traduce la referencia de cada liga. Sin esto, dos importaciones
+        // seguidas mezclarían secciones distintas con el mismo id.
+        const mapa = new Map();
+        for (const s of it.secciones) {
+          const gemela = destino.secciones.find((x) => x.nombre.toLowerCase() === s.nombre.toLowerCase());
+          if (gemela) { mapa.set(s.id, gemela.id); continue; }
+          const nueva = { id: uid(), nombre: s.nombre, color: s.color, parentId: s.parentId };
+          destino.secciones.push(nueva);
+          mapa.set(s.id, nueva.id);
+        }
+        for (const s of destino.secciones) if (s.parentId && mapa.has(s.parentId)) s.parentId = mapa.get(s.parentId);
+
+        const ya = new Set(destino.ligas.map((l) => String(l.url).replace(/#.*$/, '')));
+        for (const l of it.ligas) {
+          const clave = String(l.url).replace(/#.*$/, '');
+          if (ya.has(clave)) continue;
+          ya.add(clave);
+          destino.ligas.push({ id: uid(), url: l.url, titulo: l.titulo, seccionId: l.seccionId ? (mapa.get(l.seccionId) || null) : null });
+          n++;
+        }
+      }
+
+      for (const p of (Array.isArray(datos.pinned) ? datos.pinned : [])) {
+        if (!/^https?:/i.test(String(p.url || ''))) continue;
+        if (E.ancladas.some((a) => a.url === p.url)) continue;
+        E.ancladas.push({ id: uid(), url: p.url, titulo: String(p.title || anfitrion(p.url)) });
+      }
+
+      await guardar(); cerrarHoja(); pintar();
+      brindis(n ? `Traídas ${n} ligas` : 'No había nada nuevo que traer');
+    });
+  });
+}
+
+/* ------------------------------------------------------- hoja: los datos */
+function hojaDatos() {
+  abrirHoja((card) => {
+    card.append(el('h3', null, 'Datos'));
+    const lista = el('div', 'lista-op');
+
+    const imp = el('button', 'op');
+    imp.append(el('span', 'ic', '↓'), document.createTextNode('Importar de Espacios'));
+    imp.onclick = hojaImportar;
+
+    const exp = el('button', 'op');
+    exp.append(el('span', 'ic', '↑'), document.createTextNode('Exportar el lanzador'));
+    exp.onclick = () => {
+      const salida = { app: 'lanzador', v: 1, exportadoEl: new Date().toISOString(), espacios: E.espacios, ancladas: E.ancladas, ajustes: E.ajustes || {} };
+      const blob = new Blob([JSON.stringify(salida, null, 2)], { type: 'application/json' });
+      const a = el('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'lanzador-' + new Date().toISOString().slice(0, 10) + '.json';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      cerrarHoja();
+    };
+
+    const rest = el('button', 'op');
+    rest.append(el('span', 'ic', '⟲'), document.createTextNode('Restaurar un lanzador exportado'));
+    rest.onclick = () => {
+      const f = el('input'); f.type = 'file'; f.accept = '.json,application/json';
+      f.onchange = () => {
+        const arch = f.files && f.files[0];
+        if (!arch) return;
+        const lector = new FileReader();
+        lector.onload = async () => {
+          try {
+            const d = JSON.parse(String(lector.result));
+            if (!Array.isArray(d.espacios)) throw new Error('formato');
+            if (!confirm('Esto reemplaza todo lo que tienes aquí. ¿Seguir?')) return;
+            E = { app: 'lanzador', v: 1, espacios: d.espacios, ancladas: d.ancladas || [], ajustes: d.ajustes || {} };
+            activo = E.espacios[0] && E.espacios[0].id;
+            await guardar(); cerrarHoja(); pintar(); brindis('Restaurado');
+          } catch { brindis('Ese archivo no es un lanzador exportado'); }
+        };
+        lector.readAsText(arch);
+      };
+      f.click();
+    };
+
+    const fav = el('button', 'op');
+    const activos = !!(E.ajustes && E.ajustes.favicons);
+    fav.append(el('span', 'ic', activos ? '☑' : '☐'), document.createTextNode('Usar los iconos de cada web (pide red)'));
+    fav.onclick = async () => {
+      E.ajustes = E.ajustes || {};
+      E.ajustes.favicons = !activos;
+      await guardar(); cerrarHoja(); pintar();
+    };
+
+    lista.append(imp, exp, rest, fav);
+    card.append(lista);
+
+    const nota = el('div', 'aviso');
+    nota.textContent = Almacen.modo === 'memoria'
+      ? 'Aquí no hay dónde guardar: al cerrar se pierde. Exporta antes de salir.'
+      : 'Se guarda en este dispositivo. El archivo exportado es la copia buena.';
+    card.append(nota);
+  });
+}
+
+/* ------------------------------------------------------------- arranque */
+$('#nuevoEspacio').onclick = () => hojaEspacio(null);
+$('#btnEspacio').onclick = () => hojaEspacio(espacio());
+$('#btnEspMenu').onclick = menuEspacio;
+$('#btnDatos').onclick = hojaDatos;
+$('#addLiga').onclick = () => hojaLiga(null);
+$('#addSeccion').onclick = () => hojaSeccion(espacio(), null);
+$('#addAnclada').onclick = () => {
+  abrirHoja((card) => {
+    card.append(el('h3', null, 'Anclar una liga'));
+    const iUrl = entrada('', 'https://…', 'url');
+    const iTit = entrada('', 'Nombre corto');
+    card.append(campo('Dirección', iUrl), campo('Nombre', iTit));
+    iUrl.onblur = () => { if (!iTit.value.trim()) iTit.value = etiqueta(normalizarUrl(iUrl.value)) || ''; };
+    botones(card, 'Anclar', async () => {
+      const url = normalizarUrl(iUrl.value);
+      if (!esLanzable(url)) return brindis('Esa dirección no se puede abrir');
+      E.ancladas.push({ id: uid(), url, titulo: iTit.value.trim() || etiqueta(url) });
+      await guardar(); cerrarHoja(); pintar();
+    });
+  });
+};
+
+let tecleo = null;
+$('#buscar').oninput = (ev) => {
+  clearTimeout(tecleo);
+  const v = ev.target.value.trim();
+  tecleo = setTimeout(() => { filtro = v; pintarCuerpo(); }, 120);
+};
+
+/* Si algún día esto se envuelve como PWA con share target, la app llega con
+   ?url=…&title=… y el formulario se abre solo con los datos puestos. */
+function compartidoEntrante() {
+  const p = new URLSearchParams(location.search);
+  const url = p.get('url') || p.get('text');
+  if (!url) return false;
+  const limpio = normalizarUrl(String(url).trim().split(/\s+/).pop());
+  if (!esLanzable(limpio)) return false;
+  hojaLiga(null);
+  const card = $('#hojaCard');
+  const inputs = card.querySelectorAll('input');
+  inputs[0].value = limpio;
+  inputs[1].value = p.get('title') || etiqueta(limpio);
+  history.replaceState(null, '', location.pathname);
+  return true;
+}
+
+(async function arrancar() {
+  const guardado = await Almacen.leer();
+  E = guardado && Array.isArray(guardado.espacios) ? guardado : estadoVacio();
+  activo = E.espacios[0] && E.espacios[0].id;
+  pintar();
+  compartidoEntrante();
+})();
+</script>
+</body>
+</html>
