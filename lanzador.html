@@ -251,64 +251,106 @@ button { background: none; border: 0; cursor: pointer; }
 
 /* ------------------------------------------------------------------ hojas
    En escritorio Espacios usa una tarjeta centrada. En táctil manda la hoja
-   que sube desde abajo: el pulgar llega. */
+   que sube desde abajo: el pulgar llega. Las opciones van agrupadas en una
+   tarjeta hundida, para que se lean como una lista y no como botones sueltos. */
 .hoja {
   position: fixed; inset: 0; z-index: 40;
-  background: rgba(0,0,0,.5);
+  background: rgba(8,7,12,.62);
+  backdrop-filter: blur(3px);
   display: flex; align-items: flex-end; justify-content: center;
+  animation: fundir .16s ease;
 }
+@keyframes fundir { from { opacity: 0; } }
 .hoja-card {
-  width: 100%; max-width: 520px; max-height: 88vh; overflow-y: auto;
+  width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto;
   background: var(--surface);
-  border: 1px solid var(--line); border-bottom: 0;
-  border-radius: var(--r-lg) var(--r-lg) 0 0;
-  padding: 6px 14px calc(16px + env(safe-area-inset-bottom));
-  animation: subir .2s cubic-bezier(.2,.8,.2,1);
+  border-top: 1px solid color-mix(in srgb, var(--text) 12%, var(--line));
+  border-radius: 20px 20px 0 0;
+  padding: 8px 16px calc(18px + env(safe-area-inset-bottom));
+  box-shadow: 0 -14px 40px rgba(0,0,0,.4);
+  animation: subir .22s cubic-bezier(.2,.9,.2,1);
 }
-@keyframes subir { from { transform: translateY(14px); opacity: .6; } }
-.asa { width: 34px; height: 4px; border-radius: 2px; background: var(--line); margin: 6px auto 12px; }
-.hoja h3 { margin: 0 0 12px; font-size: 15px; font-weight: 600; }
-.campo { margin-bottom: 12px; }
+@keyframes subir { from { transform: translateY(22px); } }
+.asa { width: 40px; height: 4px; border-radius: 2px; background: var(--faint); opacity: .5; margin: 4px auto 14px; }
+
+/* Cabecera: quién es esto. La marca de color repite la de la lista, así
+   sabes sobre qué liga estás actuando sin leer. */
+.hoja-cab { display: flex; align-items: center; gap: 12px; margin: 0 2px 14px; }
+.hoja-cab .marca { width: 38px; height: 38px; border-radius: 11px; font-size: 14px; }
+.hoja-cab-txt { min-width: 0; flex: 1; }
+.hoja-tit {
+  font-size: 16px; font-weight: 600; letter-spacing: -.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.hoja-sub {
+  font-size: 12px; color: var(--faint); margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.hoja h3 { margin: 0 2px 14px; font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
+
+.campo { display: block; margin-bottom: 14px; }
 .campo > span {
-  display: block; font-size: 11px; font-weight: 600; letter-spacing: .06em;
-  text-transform: uppercase; color: var(--faint); margin-bottom: 5px;
+  display: block; font-size: 11px; font-weight: 600; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--faint); margin-bottom: 6px;
 }
 .campo input, .campo select, .campo textarea {
-  width: 100%; min-height: var(--toque); padding: 10px 12px;
-  background: var(--raised); border: 1px solid var(--line); border-radius: var(--r-md);
+  width: 100%; min-height: var(--toque); padding: 11px 13px;
+  background: var(--ink); border: 1px solid var(--line); border-radius: 11px;
   color: var(--text);
 }
-.campo textarea { min-height: 76px; resize: vertical; font-size: 13px; }
-.fila { display: flex; gap: 8px; }
-.fila > * { flex: 1; min-width: 0; }
-.acciones { display: flex; gap: 8px; margin-top: 16px; }
-.acciones button {
-  flex: 1; min-height: var(--toque); border-radius: var(--r-md);
-  background: var(--raised); font-size: 14px; font-weight: 500;
+.campo input:focus, .campo select:focus, .campo textarea:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
-.acciones .ok { background: color-mix(in srgb, var(--accent) 30%, var(--raised)); }
+.campo textarea { min-height: 76px; resize: vertical; font-size: 13px; }
+.fila { display: flex; gap: 10px; }
+.fila > * { flex: 1; min-width: 0; }
+
+.acciones { display: flex; gap: 10px; margin-top: 18px; }
+.acciones button {
+  flex: 1; min-height: 50px; border-radius: 13px;
+  background: var(--raised); font-size: 15px; font-weight: 500;
+}
+.acciones .ok { background: var(--accent); color: #16151b; font-weight: 600; }
+.acciones .ok:active { filter: brightness(.92); }
 .acciones .mal { color: var(--red); }
 
-.lista-op { display: flex; flex-direction: column; }
+/* Lista de opciones agrupada */
+.grupo {
+  background: var(--ink); border-radius: 14px; overflow: hidden;
+  margin-bottom: 10px;
+}
 .op {
-  display: flex; align-items: center; gap: 10px;
-  min-height: var(--toque); padding: 6px 4px; text-align: left; width: 100%;
-  border-radius: var(--r-md); font-size: 14px;
+  display: flex; align-items: center; gap: 13px;
+  min-height: 52px; padding: 8px 12px; text-align: left; width: 100%;
+  font-size: 15px; color: inherit; text-decoration: none;
 }
+.op + .op { border-top: 1px solid var(--surface); }
 .op:active { background: var(--raised); }
-.op .ic { width: 24px; text-align: center; color: var(--muted); flex: 0 0 auto; }
-.op.mal { color: var(--red); }
-.op.mal .ic { color: var(--red); }
-
-.rejilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 6px; }
-.rejilla button {
-  height: 44px; border-radius: var(--r-md); background: var(--raised);
-  font-size: 20px; display: grid; place-items: center;
+.op .ic {
+  width: 32px; height: 32px; flex: 0 0 auto;
+  border-radius: 9px; background: var(--raised); color: var(--muted);
+  display: grid; place-items: center; font-size: 15px;
 }
-.rejilla button.sel { outline: 2px solid var(--accent); }
-.colores { display: flex; gap: 8px; flex-wrap: wrap; }
-.colores button { width: 34px; height: 34px; border-radius: 50%; background: var(--c); }
-.colores button.sel { outline: 2px solid var(--text); outline-offset: 2px; }
+.op .txt { flex: 1; min-width: 0; }
+.op .txt small { display: block; font-size: 11px; color: var(--faint); margin-top: 1px; }
+.op.mal { color: var(--red); }
+.op.mal .ic { color: var(--red); background: color-mix(in srgb, var(--red) 16%, var(--raised)); }
+.op.destacada .ic { color: var(--accent); background: color-mix(in srgb, var(--accent) 20%, var(--raised)); }
+
+.rejilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 7px; }
+.rejilla button {
+  height: 46px; border-radius: 12px; background: var(--ink);
+  font-size: 21px; display: grid; place-items: center;
+  border: 1px solid transparent;
+}
+.rejilla button.sel { background: var(--accent-soft); border-color: var(--accent); }
+.colores { display: flex; gap: 10px; flex-wrap: wrap; }
+.colores button {
+  width: 36px; height: 36px; border-radius: 50%; background: var(--c);
+  border: 2px solid transparent; background-clip: padding-box;
+}
+.colores button.sel { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text); }
 
 /* --------------------------------------------------------- importación */
 .imp-esp {
@@ -801,6 +843,51 @@ function brindis(txt) {
   setTimeout(() => n.remove(), 2600);
 }
 
+/* --- piezas de las hojas ------------------------------------------------ */
+
+/** Cabecera con la marca de color: dice sobre qué estás actuando sin leer. */
+function cabecera(card, titulo, sub, url) {
+  const c = el('div', 'hoja-cab');
+  if (url) {
+    const m = el('div', 'marca', monograma(url, titulo));
+    m.style.setProperty('--marca', `var(--${colorDe(url)})`);
+    c.append(m);
+  }
+  const t = el('div', 'hoja-cab-txt');
+  t.append(el('div', 'hoja-tit', titulo));
+  if (sub) t.append(el('div', 'hoja-sub', sub));
+  c.append(t);
+  card.append(c);
+}
+
+/**
+ * Una opción del menú. Si `accion` es una dirección, sale un <a> de verdad,
+ * que es lo único que Android entrega a la app; si es una función, un botón.
+ */
+function opcion(icono, texto, accion, extra) {
+  const esEnlace = typeof accion === 'string';
+  const n = el(esEnlace ? 'a' : 'button', 'op' + (extra && extra.clase ? ' ' + extra.clase : ''));
+  n.append(el('span', 'ic', icono));
+  const txt = el('div', 'txt', texto);
+  if (extra && extra.nota) txt.append(el('small', null, extra.nota));
+  n.append(txt);
+  if (esEnlace) {
+    n.href = accion; n.target = '_blank'; n.rel = 'noopener';
+    n.onclick = () => cerrarHoja();
+  } else {
+    n.onclick = accion;
+  }
+  return n;
+}
+
+/** Agrupa opciones en una tarjeta. Varias llamadas = varios bloques. */
+function grupo(card, ...ops) {
+  const g = el('div', 'grupo');
+  for (const o of ops) if (o) g.append(o);
+  card.append(g);
+  return g;
+}
+
 /** Lista de secciones de un espacio, con las hijas indentadas por nombre. */
 function opcionesSeccion(sp, sel) {
   const s = el('select');
@@ -892,50 +979,34 @@ function hojaLiga(liga, sp) {
 
 function menuLiga(l) {
   abrirHoja((card) => {
-    card.append(el('h3', null, l.titulo));
-    const lista = el('div', 'lista-op');
+    cabecera(card, l.titulo, destinoDe(l.url), l.url);
 
-    const abrir = el('a', 'op');
-    abrir.href = l.url; abrir.target = '_blank'; abrir.rel = 'noopener';
-    abrir.append(el('span', 'ic', '↗'), document.createTextNode('Abrir'));
-    abrir.onclick = () => cerrarHoja();
+    grupo(card,
+      opcion('↗', 'Abrir', l.url, { clase: 'destacada' }),
+      opcion('✎', 'Editar', () => hojaLiga(l)),
+      opcion('⧉', 'Copiar dirección', async () => {
+        try { await navigator.clipboard.writeText(l.url); brindis('Copiada'); }
+        catch { brindis('No se pudo copiar'); }
+        cerrarHoja();
+      })
+    );
 
-    const editar = el('button', 'op');
-    editar.append(el('span', 'ic', '✎'), document.createTextNode('Editar'));
-    editar.onclick = () => hojaLiga(l);
+    grupo(card,
+      opcion('⚲', 'Anclar a todos los espacios', async () => {
+        if (!E.ancladas.some((a) => a.url === l.url)) E.ancladas.push({ id: uid(), url: l.url, titulo: l.titulo });
+        await guardar(); cerrarHoja(); pintar(); brindis('Anclada');
+      }),
+      opcion('↑', 'Subir', () => mover(l, -1)),
+      opcion('↓', 'Bajar', () => mover(l, 1))
+    );
 
-    const anclar = el('button', 'op');
-    anclar.append(el('span', 'ic', '⚲'), document.createTextNode('Anclar a todos los espacios'));
-    anclar.onclick = async () => {
-      if (!E.ancladas.some((a) => a.url === l.url)) E.ancladas.push({ id: uid(), url: l.url, titulo: l.titulo });
-      await guardar(); cerrarHoja(); pintar(); brindis('Anclada');
-    };
-
-    const copiar = el('button', 'op');
-    copiar.append(el('span', 'ic', '⧉'), document.createTextNode('Copiar dirección'));
-    copiar.onclick = async () => {
-      try { await navigator.clipboard.writeText(l.url); brindis('Copiada'); }
-      catch { brindis('No se pudo copiar'); }
-      cerrarHoja();
-    };
-
-    const subir = el('button', 'op');
-    subir.append(el('span', 'ic', '↑'), document.createTextNode('Subir'));
-    subir.onclick = () => mover(l, -1);
-    const bajar = el('button', 'op');
-    bajar.append(el('span', 'ic', '↓'), document.createTextNode('Bajar'));
-    bajar.onclick = () => mover(l, 1);
-
-    const borrar = el('button', 'op mal');
-    borrar.append(el('span', 'ic', '␡'), document.createTextNode('Quitar del espacio'));
-    borrar.onclick = async () => {
-      const sp = E.espacios.find((s) => s.ligas.some((x) => x.id === l.id));
-      if (sp) sp.ligas = sp.ligas.filter((x) => x.id !== l.id);
-      await guardar(); cerrarHoja(); pintar();
-    };
-
-    lista.append(abrir, editar, anclar, copiar, subir, bajar, borrar);
-    card.append(lista);
+    grupo(card,
+      opcion('␡', 'Quitar del espacio', async () => {
+        const sp = E.espacios.find((s) => s.ligas.some((x) => x.id === l.id));
+        if (sp) sp.ligas = sp.ligas.filter((x) => x.id !== l.id);
+        await guardar(); cerrarHoja(); pintar();
+      }, { clase: 'mal' })
+    );
   });
 }
 
@@ -955,16 +1026,14 @@ async function mover(l, paso) {
 
 function menuAnclada(a) {
   abrirHoja((card) => {
-    card.append(el('h3', null, a.titulo));
-    const lista = el('div', 'lista-op');
-    const quitar = el('button', 'op mal');
-    quitar.append(el('span', 'ic', '␡'), document.createTextNode('Quitar de ancladas'));
-    quitar.onclick = async () => {
-      E.ancladas = E.ancladas.filter((x) => x.id !== a.id);
-      await guardar(); cerrarHoja(); pintar();
-    };
-    lista.append(quitar);
-    card.append(lista);
+    cabecera(card, a.titulo, destinoDe(a.url), a.url);
+    grupo(card,
+      opcion('↗', 'Abrir', a.url, { clase: 'destacada' }),
+      opcion('␡', 'Quitar de ancladas', async () => {
+        E.ancladas = E.ancladas.filter((x) => x.id !== a.id);
+        await guardar(); cerrarHoja(); pintar();
+      }, { clase: 'mal' })
+    );
   });
 }
 
@@ -1010,32 +1079,24 @@ function hojaEspacio(sp) {
 function menuEspacio() {
   const sp = espacio();
   abrirHoja((card) => {
-    card.append(el('h3', null, sp.icono + '  ' + sp.nombre));
-    const lista = el('div', 'lista-op');
+    cabecera(card, sp.icono + '  ' + sp.nombre,
+      `${sp.ligas.length} ligas · ${sp.secciones.length} secciones`, null);
 
-    const editar = el('button', 'op');
-    editar.append(el('span', 'ic', '✎'), document.createTextNode('Editar espacio'));
-    editar.onclick = () => hojaEspacio(sp);
+    grupo(card,
+      opcion('✎', 'Editar espacio', () => hojaEspacio(sp), { nota: 'Nombre, icono y color' }),
+      opcion('↑', 'Subir en el riel', () => moverEspacio(sp, -1)),
+      opcion('↓', 'Bajar en el riel', () => moverEspacio(sp, 1))
+    );
 
-    const izq = el('button', 'op');
-    izq.append(el('span', 'ic', '↑'), document.createTextNode('Subir en el riel'));
-    izq.onclick = () => moverEspacio(sp, -1);
-    const der = el('button', 'op');
-    der.append(el('span', 'ic', '↓'), document.createTextNode('Bajar en el riel'));
-    der.onclick = () => moverEspacio(sp, 1);
-
-    const borrar = el('button', 'op mal');
-    borrar.append(el('span', 'ic', '␡'), document.createTextNode(`Borrar espacio y sus ${sp.ligas.length} ligas`));
-    borrar.onclick = async () => {
-      if (E.espacios.length === 1) { brindis('Tiene que quedar al menos un espacio'); return; }
-      if (!confirm(`¿Borrar "${sp.nombre}" y sus ${sp.ligas.length} ligas?`)) return;
-      E.espacios = E.espacios.filter((s) => s.id !== sp.id);
-      activo = E.espacios[0].id;
-      await guardar(); cerrarHoja(); pintar();
-    };
-
-    lista.append(editar, izq, der, borrar);
-    card.append(lista);
+    grupo(card,
+      opcion('␡', 'Borrar espacio', async () => {
+        if (E.espacios.length === 1) { brindis('Tiene que quedar al menos un espacio'); return; }
+        if (!confirm(`¿Borrar "${sp.nombre}" y sus ${sp.ligas.length} ligas?`)) return;
+        E.espacios = E.espacios.filter((s) => s.id !== sp.id);
+        activo = E.espacios[0].id;
+        await guardar(); cerrarHoja(); pintar();
+      }, { clase: 'mal', nota: `Se van sus ${sp.ligas.length} ligas` })
+    );
   });
 }
 
@@ -1088,29 +1149,23 @@ function hojaSeccion(sp, sec) {
 
 function menuSeccion(sp, sec) {
   abrirHoja((card) => {
-    card.append(el('h3', null, sec.nombre));
-    const lista = el('div', 'lista-op');
+    const dentro = sp.ligas.filter((l) => l.seccionId === sec.id).length;
+    cabecera(card, sec.nombre, `${dentro} ligas en esta sección`, null);
 
-    const editar = el('button', 'op');
-    editar.append(el('span', 'ic', '✎'), document.createTextNode('Editar sección'));
-    editar.onclick = () => hojaSeccion(sp, sec);
+    grupo(card,
+      opcion('+', 'Añadir liga aquí', () => { cerrarHoja(); hojaLigaEn(sp, sec.id); }, { clase: 'destacada' }),
+      opcion('✎', 'Editar sección', () => hojaSeccion(sp, sec), { nota: 'Nombre, color y nivel' })
+    );
 
-    const anadir = el('button', 'op');
-    anadir.append(el('span', 'ic', '+'), document.createTextNode('Añadir liga aquí'));
-    anadir.onclick = () => { cerrarHoja(); hojaLigaEn(sp, sec.id); };
-
-    const borrar = el('button', 'op mal');
-    borrar.append(el('span', 'ic', '␡'), document.createTextNode('Borrar sección (las ligas se quedan)'));
-    borrar.onclick = async () => {
-      const hijas = sp.secciones.filter((s) => s.parentId === sec.id).map((s) => s.id);
-      const fuera = new Set([sec.id, ...hijas]);
-      for (const l of sp.ligas) if (fuera.has(l.seccionId)) l.seccionId = null;
-      sp.secciones = sp.secciones.filter((s) => !fuera.has(s.id));
-      await guardar(); cerrarHoja(); pintar();
-    };
-
-    lista.append(editar, anadir, borrar);
-    card.append(lista);
+    grupo(card,
+      opcion('␡', 'Borrar sección', async () => {
+        const hijas = sp.secciones.filter((s) => s.parentId === sec.id).map((s) => s.id);
+        const fuera = new Set([sec.id, ...hijas]);
+        for (const l of sp.ligas) if (fuera.has(l.seccionId)) l.seccionId = null;
+        sp.secciones = sp.secciones.filter((s) => !fuera.has(s.id));
+        await guardar(); cerrarHoja(); pintar();
+      }, { clase: 'mal', nota: 'Las ligas se quedan, sueltas' })
+    );
   });
 }
 
@@ -1304,64 +1359,56 @@ function hojaImportar() {
 function hojaDatos() {
   abrirHoja((card) => {
     card.append(el('h3', null, 'Datos'));
-    const lista = el('div', 'lista-op');
 
-    const imp = el('button', 'op');
-    imp.append(el('span', 'ic', '↓'), document.createTextNode('Importar de Espacios'));
-    imp.onclick = hojaImportar;
+    const nLigas = E.espacios.reduce((n, s) => n + s.ligas.length, 0);
 
-    const exp = el('button', 'op');
-    exp.append(el('span', 'ic', '↑'), document.createTextNode('Exportar el lanzador'));
-    exp.onclick = () => {
-      const salida = { app: 'lanzador', v: 1, exportadoEl: new Date().toISOString(), espacios: E.espacios, ancladas: E.ancladas, ajustes: E.ajustes || {} };
-      const blob = new Blob([JSON.stringify(salida, null, 2)], { type: 'application/json' });
-      const a = el('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'lanzador-' + new Date().toISOString().slice(0, 10) + '.json';
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-      cerrarHoja();
-    };
-
-    const rest = el('button', 'op');
-    rest.append(el('span', 'ic', '⟲'), document.createTextNode('Restaurar un lanzador exportado'));
-    rest.onclick = () => {
-      const f = el('input'); f.type = 'file'; f.accept = '.json,application/json';
-      f.onchange = () => {
-        const arch = f.files && f.files[0];
-        if (!arch) return;
-        const lector = new FileReader();
-        lector.onload = async () => {
-          try {
-            const d = JSON.parse(String(lector.result));
-            if (!Array.isArray(d.espacios)) throw new Error('formato');
-            if (!confirm('Esto reemplaza todo lo que tienes aquí. ¿Seguir?')) return;
-            E = { app: 'lanzador', v: 1, espacios: d.espacios, ancladas: d.ancladas || [], ajustes: d.ajustes || {} };
-            activo = E.espacios[0] && E.espacios[0].id;
-            await guardar(); cerrarHoja(); pintar(); brindis('Restaurado');
-          } catch { brindis('Ese archivo no es un lanzador exportado'); }
+    grupo(card,
+      opcion('↓', 'Importar de Espacios', hojaImportar, { nota: 'Del archivo que exporta la extensión' }),
+      opcion('↑', 'Exportar el lanzador', () => {
+        const salida = { app: 'lanzador', v: 1, exportadoEl: new Date().toISOString(), espacios: E.espacios, ancladas: E.ancladas, ajustes: E.ajustes || {} };
+        const blob = new Blob([JSON.stringify(salida, null, 2)], { type: 'application/json' });
+        const a = el('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'lanzador-' + new Date().toISOString().slice(0, 10) + '.json';
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+        cerrarHoja();
+      }, { nota: `${E.espacios.length} espacios, ${nLigas} ligas` }),
+      opcion('⟲', 'Restaurar un lanzador exportado', () => {
+        const f = el('input'); f.type = 'file'; f.accept = '.json,application/json';
+        f.onchange = () => {
+          const arch = f.files && f.files[0];
+          if (!arch) return;
+          const lector = new FileReader();
+          lector.onload = async () => {
+            try {
+              const d = JSON.parse(String(lector.result));
+              if (!Array.isArray(d.espacios)) throw new Error('formato');
+              if (!confirm('Esto reemplaza todo lo que tienes aquí. ¿Seguir?')) return;
+              E = { app: 'lanzador', v: 1, espacios: d.espacios, ancladas: d.ancladas || [], ajustes: d.ajustes || {} };
+              activo = E.espacios[0] && E.espacios[0].id;
+              await guardar(); cerrarHoja(); pintar(); brindis('Restaurado');
+            } catch { brindis('Ese archivo no es un lanzador exportado'); }
+          };
+          lector.readAsText(arch);
         };
-        lector.readAsText(arch);
-      };
-      f.click();
-    };
+        f.click();
+      }, { nota: 'Reemplaza todo lo de aquí' })
+    );
 
-    const fav = el('button', 'op');
     const activos = !!(E.ajustes && E.ajustes.favicons);
-    fav.append(el('span', 'ic', activos ? '☑' : '☐'), document.createTextNode('Usar los iconos de cada web (pide red)'));
-    fav.onclick = async () => {
-      E.ajustes = E.ajustes || {};
-      E.ajustes.favicons = !activos;
-      await guardar(); cerrarHoja(); pintar();
-    };
-
-    lista.append(imp, exp, rest, fav);
-    card.append(lista);
+    grupo(card,
+      opcion(activos ? '☑' : '☐', 'Usar los iconos de cada web', async () => {
+        E.ajustes = E.ajustes || {};
+        E.ajustes.favicons = !activos;
+        await guardar(); cerrarHoja(); pintar();
+      }, { nota: 'Pide red; si no, van las iniciales' })
+    );
 
     const nota = el('div', 'aviso');
     nota.textContent = Almacen.modo === 'memoria'
       ? 'Aquí no hay dónde guardar: al cerrar se pierde. Exporta antes de salir.'
-      : 'Se guarda en este dispositivo. El archivo exportado es la copia buena.';
+      : 'Se guarda en este dispositivo, por dirección. El archivo exportado es la copia buena.';
     card.append(nota);
   });
 }
